@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Academic Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/journal-theme.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="journal-body">
+<div class="journal-shell container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <div class="journal-pill mb-3">Predictive Analytics</div>
+            <h1 class="journal-page-title mb-1">Academic Prediction</h1>
+            <p class="journal-subtitle mb-0">Predictive analytics berbasis attendance rate, trend kehadiran, dan rule sederhana.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
+            <a href="{{ url_for('attendance_history') }}" class="btn btn-outline-primary">Attendance</a>
+            <a href="{{ url_for('testing_report') }}" class="btn btn-outline-dark">Testing</a>
+            <a href="{{ url_for('accuracy_report') }}" class="btn btn-outline-success">Accuracy</a>
+            <a href="{{ url_for('research_results') }}" class="btn btn-outline-info">Research</a>
+            <a href="{{ url_for('export_report', report_type='prediction', file_format='pdf') }}" class="btn btn-outline-danger">Prediction PDF</a>
+            <a href="{{ url_for('export_report', report_type='prediction', file_format='excel') }}" class="btn btn-outline-success">Prediction Excel</a>
+            <a href="{{ url_for('export_report', report_type='risk', file_format='pdf') }}" class="btn btn-outline-danger">Risk PDF</a>
+            <a href="{{ url_for('export_report', report_type='risk', file_format='excel') }}" class="btn btn-outline-success">Risk Excel</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card metric-card p-4 h-100">
+                <div class="metric-label">Total Students</div>
+                <h2 class="metric-value mb-0">{{ total_students }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card p-4 h-100">
+                <div class="metric-label">Total Attendance</div>
+                <h2 class="metric-value mb-0">{{ total_attendance }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card p-4 h-100">
+                <div class="metric-label">Low / Medium / High</div>
+                <h2 class="metric-value mb-0">{{ low_risk_students }} / {{ medium_risk_students }} / {{ high_risk_students }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card p-4 h-100">
+                <div class="metric-label">Safe / At Risk / Critical</div>
+                <h2 class="metric-value mb-0">{{ safe_students }} / {{ at_risk_students }} / {{ critical_students }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card journal-chart-card journal-card p-4 h-100">
+                <h4 class="mb-3">Attendance Trend Chart</h4>
+                <canvas id="attendanceTrendChart" height="220"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card journal-card p-4 h-100">
+                <h4 class="mb-3">Risk Distribution Chart</h4>
+                <canvas id="riskDistributionChart" height="240"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card journal-card p-4 h-100">
+                <h4 class="mb-3">Prediction Distribution Chart</h4>
+                <canvas id="predictionDistributionChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nama</th>
+                            <th>NIM</th>
+                            <th>Attendance Rate</th>
+                            <th>Prediction</th>
+                            <th>Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if prediction_rows %}
+                            {% for row in prediction_rows %}
+                                <tr>
+                                    <td>{{ row.nama }}</td>
+                                    <td>{{ row.nim }}</td>
+                                    <td>{{ row.attendance_rate }}%</td>
+                                    <td>
+                                        <span class="badge
+                                            {% if row.prediction_level == 'SAFE' %}text-bg-success
+                                            {% elif row.prediction_level == 'AT_RISK' %}text-bg-warning text-dark
+                                            {% else %}text-bg-danger{% endif %}">
+                                            {{ row.prediction_level }}
+                                        </span>
+                                    </td>
+                                    <td>{{ row.recommendation }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">Belum ada data prediksi.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const attendanceTrend = {{ attendance_trend | tojson }};
+    const riskDistribution = {{ risk_distribution | tojson }};
+    const predictionDistribution = {{ prediction_distribution | tojson }};
+
+    const createDoughnutChart = (canvasId, labels, values, colors) => {
+        new Chart(document.getElementById(canvasId), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    };
+
+    new Chart(document.getElementById('attendanceTrendChart'), {
+        type: 'line',
+        data: {
+            labels: attendanceTrend.labels || [],
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: attendanceTrend.values || [],
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                tension: 0.35,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    createDoughnutChart(
+        'riskDistributionChart',
+        riskDistribution.labels || [],
+        riskDistribution.values || [],
+        ['#16a34a', '#f59e0b', '#dc2626']
+    );
+
+    createDoughnutChart(
+        'predictionDistributionChart',
+        predictionDistribution.labels || [],
+        predictionDistribution.values || [],
+        ['#0d9488', '#f97316', '#b91c1c']
+    );
+</script>
+</body>
+</html>

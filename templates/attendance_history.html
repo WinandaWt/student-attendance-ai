@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Riwayat Absensi</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/journal-theme.css') }}" rel="stylesheet">
+</head>
+
+<body class="journal-body">
+
+<div class="journal-shell container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="journal-pill mb-3">Attendance Report</div>
+            <h1 class="journal-page-title mb-1">Riwayat Absensi</h1>
+            <p class="journal-subtitle mb-0">
+                Daftar seluruh hasil verifikasi wajah dan pencatatan attendance.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary journal-navbar-btn journal-btn-outline">
+                Dashboard
+            </a>
+            <a href="{{ url_for('attendance') }}" class="btn btn-primary journal-navbar-btn journal-btn-primary">
+                Input Absensi
+            </a>
+            <a href="{{ url_for('predictions') }}" class="btn btn-outline-primary journal-navbar-btn journal-btn-outline">
+                Predictions
+            </a>
+            <a href="{{ url_for('export_report', report_type='attendance', file_format='pdf') }}"
+               class="btn btn-outline-danger journal-navbar-btn journal-btn-outline">
+                PDF
+            </a>
+            <a href="{{ url_for('export_report', report_type='attendance', file_format='excel') }}"
+               class="btn btn-outline-success journal-navbar-btn journal-btn-outline">
+                Excel
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card journal-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle mb-0 journal-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama</th>
+                            <th>NIM</th>
+                            <th>Tanggal</th>
+                            <th>Jam</th>
+                            <th>Similarity</th>
+                            <th>Status</th>
+                            <th>Foto Selfie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if records %}
+                            {% for record in records %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ record.nama }}</td>
+                                    <td>{{ record.nim }}</td>
+                                    <td>{{ record.tanggal if record.tanggal else '-' }}</td>
+                                    <td>{{ record.waktu if record.waktu else '-' }}</td>
+                                    <td>{{ record.similarity }}%</td>
+                                    <td>
+                                        <span class="badge {{ 'text-bg-success' if record.status == 'VALID' else 'text-bg-danger' }}">
+                                            {{ record.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if record.photo_path %}
+                                            <img src="{{ url_for('static', filename=record.photo_path) }}"
+                                                 alt="Foto Selfie"
+                                                 class="img-thumbnail"
+                                                 style="width: 90px; height: 90px; object-fit: cover;">
+                                        {% else %}
+                                            <span class="badge text-bg-secondary">Tidak ada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    Belum ada riwayat absensi.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
