@@ -2,9 +2,9 @@
 
 try:
     conn = mysql.connector.connect(
-        host="localhost",
+        host="172.0.0.1",
         user="root",
-        password=""
+        password="root"
     )
 
     cursor = conn.cursor()
